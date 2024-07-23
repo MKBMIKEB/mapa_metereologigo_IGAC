@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapa Interactivo con Capas Meteorológicas</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #181818;
+            color: #E0E0E0;
+            margin: 0;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+        .legend {
+            background: rgba(0, 0, 0, 0.8);
+            color: #E0E0E0;
+            line-height: 1.5;
+            padding: 10px;
+            font-size: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+        }
+        .legend .title {
+            text-align: left;
+            font-weight: bold;
+        }
+        .legend .scale {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .popup-content {
+            font-size: 14px;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.8);
+            color: black;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .popup-content img {
+            vertical-align: middle;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+        .search-bar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            padding: 5px;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        #controlPanel {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            z-index: 1000;
+            color: white;
+            display: none;
+            justify-content: center;
+        }
+        #chartContainer {
+            width: 90%;
+            height: 200px;
+        }
+        #chart {
+            width: 100%;
+            height: 100%;
+        }
+        .toggle-theme {
+            position: absolute;
+            top: 10px;
+            right: 70px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        .toggle-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        #notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 250px;
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 2000;
+        }
+        .notification-bell {
+            position: absolute;
+            top: 10px;
+            right: 130px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        .notification-list {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 2000;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="notification-bell">🔔</div>
+    <div class="notification-list"></div>
+    <button class="toggle-theme">Toggle Theme</button>
+    <button class="toggle-panel">Toggle Panel</button>
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Ingrese nombre de la estación">
+    </div>
+    <div id="map"></div>
+    <div id="controlPanel">
+        <div id="chartContainer">
+            <canvas id="chart"></canvas>
+        </div>
+    </div>
+    <div id="notification"></div>
+    <script>
+        var map = L.map('map').setView([4.7110, -74.0721], 6);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        // Función para obtener datos meteorológicos de Open-Meteo
+        async function obtenerDatosMeteorologicos(lat, lon) {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,relative_humidity_2m,windspeed_10m,winddirection_10m,cloudcover,shortwave_radiation,uv_index`;
+            try {
+                const response = await axios.get(url);
+                return response.data;
+            } catch (error) {
+                console.error('Error al obtener los datos meteorológicos:', error);
+                return null;
+            }
+        }
+
+        // Función para obtener el color basado en la precipitación
+        function obtenerColorPrecipitacion(precip) {
+            return precip > 50 ? '#FF0000' :
+                   precip > 40 ? '#FF4500' :
+                   precip > 30 ? '#FFA500' :
+                   precip > 20 ? '#FFD700' :
+                   precip > 15 ? '#FFFF00' :
+                   precip > 10 ? '#ADFF2F' :
+                   precip > 7  ? '#7FFF00' :
+                   precip > 5  ? '#7CFC00' :
+                   precip > 3  ? '#00FF00' :
+                   precip > 1  ? '#32CD32' :
+                   precip > 0.5? '#228B22' :
+                                 '#006400';
+        }
+
+        var estaciones = [];
+        var markers = [];
+        var chart = null;
+        var notificaciones = [];
+
+        // Cargar el archivo GeoJSON y agregar marcadores
+        async function agregarMarcadores() {
+            try {
+                const response = await fetch('RedGeoAc_RedNacional.json');
+                const geojson = await response.json();
+                for (const feature of geojson.features) {
+                    const [lon, lat] = feature.geometry.coordinates;
+                    if (lat && lon) {
+                        const datos = await obtenerDatosMeteorologicos(lat, lon);
+                        if (datos) {
+                            const temp = datos.hourly.temperature_2m[0];
+                            const precip = datos.hourly.precipitation[0];
+                            const humidity = datos.hourly.relative_humidity_2m[0];
+                            const windSpeed = datos.hourly.windspeed_10m[0];
+                            const windDirection = datos.hourly.winddirection_10m[0];
+                            const cloudCover = datos.hourly.cloudcover[0];
+                            const solarRadiation = datos.hourly.shortwave_radiation[0];
+                            const uvIndex = datos.hourly.uv_index[0];
+
+                            const info = feature.properties || {};
+
+                            const marker = L.circleMarker([lat, lon], {
+                                radius: 8,
+                                fillColor: obtenerColorPrecipitacion(precip),
+                                color: obtenerColorPrecipitacion(precip),
+                                weight: 1,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(map)
+                                .bindPopup(`
+                                    <div class="popup-content">
+                                        <div><img src="iconos/temperatura.png" alt="Temp"> Temperatura: ${temp} °C</div>
+                                        <div><img src="iconos/precipitacion.png" alt="Precip"> Precipitación: ${precip} mm</div>
+                                        <div><img src="iconos/humedad.png" alt="Humedad"> Humedad: ${humidity} %</div>
+                                        <div><img src="iconos/viento.png" alt="Viento"> Velocidad del viento: ${windSpeed} m/s</div>
+                                        <div><img src="iconos/direccion-viento.png" alt="Dirección"> Dirección del viento: ${windDirection}°</div>
+                                        <div><img src="iconos/nubes.png" alt="Nubes"> Cobertura de nubes: ${cloudCover} %</div>
+                                        <div><img src="iconos/solar.png" alt="Solar"> Radiación solar: ${solarRadiation} W/m²</div>
+                                        <div><img src="iconos/uv.png" alt="UV"> Índice UV: ${uvIndex}</div>
+                                        <div>Información adicional:</div>
+                                        ${Object.keys(info).map(key => `<div>${key}: ${info[key]}</div>`).join('')}
+                                    </div>
+                                `)
+                                .on('click', function() {
+                                    mostrarGrafico(datos);
+                                    verificarCondiciones(datos, info.MRTNomencl);
+                                });
+
+                            markers.push(marker);
+                            estaciones.push({nombre: info.MRTNomencl, marker: marker});
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error al cargar el archivo GeoJSON:', error);
+            }
+        }
+
+        agregarMarcadores();
+
+        // Añadir capas meteorológicas con mejor visualización
+        const apiKey = '5627b92aeb07a6b6e4310519e41eb927';
+        var precipitationLayer = L.tileLayer(`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${apiKey}`, {
+            opacity: 0.7
+        }).addTo(map);
+
+        var cloudsLayer = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${apiKey}`, {
+            opacity: 0.5
+        }).addTo(map);
+
+        var overlays = {
+            "Precipitación": precipitationLayer,
+            "Nubes": cloudsLayer
+        };
+
+        L.control.layers(null, overlays).addTo(map);
+
+        // Añadir leyenda personalizada
+        var legend = L.control({position: 'bottomright'});
+
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <div class="title">Precipitación, mm/h</div>
+                <div class="scale">
+                    <div style="background: #003300; width: 20px; height: 20px;"></div>
+                    <div style="background: #006600; width: 20px; height: 20px;"></div>
+                    <div style="background: #009900; width: 20px; height: 20px;"></div>
+                    <div style="background: #00CC00; width: 20px; height: 20px;"></div>
+                    <div style="background: #00FF00; width: 20px; height: 20px;"></div>
+                    <div style="background: #FFFF00; width: 20px; height: 20px;"></div>
+                    <div style="background: #FFCC00; width: 20px; height: 20px;"></div>
+                    <div style="background: #FF9900; width: 20px; height: 20px;"></div>
+                    <div style="background: #FF6600; width: 20px; height: 20px;"></div>
+                    <div style="background: #FF3300; width: 20px; height: 20px;"></div>
+                    <div style="background: #FF0000; width: 20px; height: 20px;"></div>
+                </div>
+                <div class="scale">
+                    <span>0</span>
+                    <span>60</span>
+                </div>
+            `;
+            return div;
+        };
+
+        legend.addTo(map);
+
+        // Animaciones en Tiempo Real
+        function actualizarCapasMeteorologicas() {
+            precipitationLayer.setUrl(`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${apiKey}`);
+            cloudsLayer.setUrl(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${apiKey}`);
+        }
+
+        setInterval(actualizarCapasMeteorologicas, 600000); // Actualizar cada 10 minutos
+
+        // Función para manejar la búsqueda
+        document.getElementById('searchInput').addEventListener('input', function (e) {
+            var searchText = e.target.value.toLowerCase();
+            estaciones.forEach(function (estacion) {
+                if (estacion.nombre.toLowerCase().includes(searchText)) {
+                    map.setView(estacion.marker.getLatLng(), 10);
+                    estacion.marker.openPopup();
+                }
+            });
+        });
+
+        // Función para mostrar gráficos de datos meteorológicos
+        function mostrarGrafico(datos) {
+            const labels = datos.hourly.time.slice(0, 24); // Primeras 24 horas
+            const tempData = datos.hourly.temperature_2m.slice(0, 24);
+            const precipData = datos.hourly.precipitation.slice(0, 24);
+
+            const ctx = document.getElementById('chart').getContext('2d');
+            if (chart) {
+                chart.destroy();
+            }
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperatura (°C)',
+                        data: tempData,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        yAxisID: 'y',
+                    }, {
+                        label: 'Precipitación (mm)',
+                        data: precipData,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        yAxisID: 'y1',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
+
+            document.getElementById('controlPanel').style.display = 'flex';
+        }
+
+        // Función para verificar condiciones y mostrar notificaciones
+        function verificarCondiciones(datos, nombreEstacion) {
+            const precip = datos.hourly.precipitation[0];
+            const windSpeed = datos.hourly.windspeed_10m[0];
+
+            if (precip > 20) {
+                mostrarNotificacion('Alerta de Precipitación', 'Precipitación elevada detectada en ' + nombreEstacion + ': ' + precip + ' mm/h');
+            }
+
+            if (windSpeed > 10) {
+                mostrarNotificacion('Alerta de Viento', 'Velocidad del viento elevada detectada en ' + nombreEstacion + ': ' + windSpeed + ' m/s');
+            }
+        }
+
+        // Función para mostrar notificaciones
+        function mostrarNotificacion(titulo, mensaje) {
+            const notificationElement = document.getElementById('notification');
+            notificationElement.innerHTML = `<strong>${titulo}</strong><br>${mensaje}`;
+            notificationElement.style.display = 'block';
+            notificaciones.push({titulo, mensaje});
+            actualizarListaNotificaciones();
+            setTimeout(() => {
+                notificationElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Función para actualizar la lista de notificaciones
+        function actualizarListaNotificaciones() {
+            const notificationList = document.querySelector('.notification-list');
+            notificationList.innerHTML = notificaciones.map(notif => `<div><strong>${notif.titulo}</strong><br>${notif.mensaje}</div>`).join('');
+        }
+
+        // Mostrar/ocultar lista de notificaciones al hacer clic en la campana
+        document.querySelector('.notification-bell').addEventListener('click', function() {
+            const notificationList = document.querySelector('.notification-list');
+            notificationList.style.display = notificationList.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Función para alternar entre modo oscuro y claro
+        document.querySelector('.toggle-theme').addEventListener('click', function() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            map.remove();
+            map = L.map('map', {
+                center: [4.7110, -74.0721],
+                zoom: 6,
+                layers: [isDark ? darkLayer : lightLayer]
+            });
+            agregarMarcadores();
+            L.control.layers(null, overlays).addTo(map);
+            legend.addTo(map);
+        });
+
+        // Función para mostrar/ocultar el panel de gráficos
+        document.querySelector('.toggle-panel').addEventListener('click', function() {
+            const controlPanel = document.getElementById('controlPanel');
+            controlPanel.style.display = controlPanel.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        var lightLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
+
+        var darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        });
+    </script>
+</body>
+</html>
+
+

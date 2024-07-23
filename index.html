@@ -12,159 +12,108 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #181818;
-            color: #E0E0E0;
-            margin: 0;
-        }
-        #map {
-            width: 100%;
-            height: 100vh;
-        }
-        .legend {
-            background: rgba(0, 0, 0, 0.8);
-            color: #E0E0E0;
-            line-height: 1.5;
-            padding: 10px;
-            font-size: 12px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            border-radius: 5px;
-        }
-        .legend .title {
-            text-align: left;
-            font-weight: bold;
-        }
-        .legend .scale {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .popup-content {
-            font-size: 14px;
-            line-height: 1.6;
-            background: rgba(255, 255, 255, 0.8);
-            color: black;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .popup-content img {
-            vertical-align: middle;
-            width: 20px;
-            height: 20px;
-            margin-right: 5px;
-        }
-        .search-bar {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 5px;
-            padding: 5px;
-        }
-        .search-bar input {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        #controlPanel {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 10px 10px 0 0;
-            z-index: 1000;
-            color: white;
-            display: none;
-            justify-content: center;
-        }
-        #chartContainer {
-            width: 90%;
-            height: 200px;
-        }
-        #chart {
-            width: 100%;
-            height: 100%;
-        }
-        .toggle-theme {
-            position: absolute;
-            top: 10px;
-            right: 70px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 1000;
-        }
-        .toggle-panel {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 1000;
-        }
-        #notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 250px;
-            background: rgba(255, 255, 255, 0.9);
-            color: black;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            display: none;
-            z-index: 2000;
-        }
-        .notification-bell {
-            position: absolute;
-            top: 10px;
-            right: 130px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 1000;
-        }
-        .notification-list {
-            position: absolute;
-            top: 40px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            color: black;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            display: none;
-            z-index: 2000;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+    font-family: 'Roboto', sans-serif;
+    background-color: #181818;
+    color: #E0E0E0;
+    margin: 0;
+    overflow: hidden; /* Asegura que no haya barras de desplazamiento */
+}
+#map {
+    width: 100%;
+    height: 100vh; /* Ocupa toda la altura de la ventana */
+}
+#controlPanel {
+    width: 300px; /* Ajustar el ancho según sea necesario */
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    border-radius: 10px 0 0 10px; /* Ajustar las esquinas redondeadas */
+    color: white;
+    display: none;
+    justify-content: center;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    height: 400px; /* Ajustar la altura según sea necesario */
+    z-index: 1000; /* Asegura que esté sobre el mapa */
+}
+#chartContainer {
+    width: 100%;
+    height: 100%; /* Fill the panel */
+}
+#chart {
+    width: 100%;
+    height: 100%; /* Fill the container */
+}
+.controls {
+    position: absolute;
+    top: 10px;
+    left: 60px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+}
+.controls button, .controls .search-bar {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+    flex-grow: 1;
+}
+.search-bar input {
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 5px;
+    outline: none;
+    flex-grow: 1;
+}
+.notification-bell {
+    margin-left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1000;
+}
+.notification-list {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    color: black;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 2000;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
     </style>
 </head>
 <body>
-    <div class="notification-bell">🔔</div>
-    <div class="notification-list"></div>
-    <button class="toggle-theme">Toggle Theme</button>
-    <button class="toggle-panel">Toggle Panel</button>
-    <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Ingrese nombre de la estación">
+    <div class="controls">
+        <button class="toggle-theme">Toggle Theme</button>
+        <button class="toggle-panel">Toggle Panel</button>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Ingrese nombre de la estación">
+            <div class="notification-bell">🔔</div>
+        </div>
     </div>
+    <div class="notification-list"></div>
     <div id="map"></div>
     <div id="controlPanel">
         <div id="chartContainer">
@@ -339,53 +288,56 @@
         });
 
         // Función para mostrar gráficos de datos meteorológicos
-        function mostrarGrafico(datos) {
-            const labels = datos.hourly.time.slice(0, 24); // Primeras 24 horas
-            const tempData = datos.hourly.temperature_2m.slice(0, 24);
-            const precipData = datos.hourly.precipitation.slice(0, 24);
+        // Función para mostrar gráficos de datos meteorológicos
+function mostrarGrafico(datos) {
+    const labels = datos.hourly.time.slice(0, 24); // Primeras 24 horas
+    const tempData = datos.hourly.temperature_2m.slice(0, 24);
+    const precipData = datos.hourly.precipitation.slice(0, 24);
 
-            const ctx = document.getElementById('chart').getContext('2d');
-            if (chart) {
-                chart.destroy();
-            }
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Temperatura (°C)',
-                        data: tempData,
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        yAxisID: 'y',
-                    }, {
-                        label: 'Precipitación (mm)',
-                        data: precipData,
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        yAxisID: 'y1',
-                    }]
+    const ctx = document.getElementById('chart').getContext('2d');
+    if (chart) {
+        chart.destroy();
+    }
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Temperatura (°C)',
+                data: tempData,
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                yAxisID: 'y',
+            }, {
+                label: 'Precipitación (mm)',
+                data: precipData,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                yAxisID: 'y1',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            grid: {
-                                drawOnChartArea: false,
-                            },
-                        },
-                    }
-                }
-            });
-
-            document.getElementById('controlPanel').style.display = 'flex';
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                },
+            }
         }
+    });
+
+    // Ajustar tamaño del panel y mostrarlo
+    document.getElementById('controlPanel').style.display = 'flex';
+}
 
         // Función para verificar condiciones y mostrar notificaciones
         function verificarCondiciones(datos, nombreEstacion) {
@@ -416,7 +368,11 @@
         // Función para actualizar la lista de notificaciones
         function actualizarListaNotificaciones() {
             const notificationList = document.querySelector('.notification-list');
-            notificationList.innerHTML = notificaciones.map(notif => `<div><strong>${notif.titulo}</strong><br>${notif.mensaje}</div>`).join('');
+            if (notificaciones.length === 0) {
+                notificationList.innerHTML = '<div>No se han registrado cambios en los datos desde el ingreso del usuario.</div>';
+            } else {
+                notificationList.innerHTML = notificaciones.map(notif => `<div><strong>${notif.titulo}</strong><br>${notif.mensaje}</div>`).join('');
+            }
         }
 
         // Mostrar/ocultar lista de notificaciones al hacer clic en la campana
@@ -455,5 +411,3 @@
     </script>
 </body>
 </html>
-
-

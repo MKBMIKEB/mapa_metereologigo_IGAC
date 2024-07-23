@@ -10,98 +10,108 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <style>
         body {
-    font-family: 'Roboto', sans-serif;
-    background-color: #181818;
-    color: #E0E0E0;
-    margin: 0;
-    overflow: hidden; /* Asegura que no haya barras de desplazamiento */
-}
-#map {
-    width: 100%;
-    height: 100vh; /* Ocupa toda la altura de la ventana */
-}
-#controlPanel {
-    width: 300px; /* Ajustar el ancho según sea necesario */
-    background: rgba(0, 0, 0, 0.8);
-    padding: 10px;
-    border-radius: 10px 0 0 10px; /* Ajustar las esquinas redondeadas */
-    color: white;
-    display: none;
-    justify-content: center;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    height: 400px; /* Ajustar la altura según sea necesario */
-    z-index: 1000; /* Asegura que esté sobre el mapa */
-}
-#chartContainer {
-    width: 100%;
-    height: 100%; /* Fill the panel */
-}
-#chart {
-    width: 100%;
-    height: 100%; /* Fill the container */
-}
-.controls {
-    position: absolute;
-    top: 10px;
-    left: 60px;
-    z-index: 1000;
-    display: flex;
-    gap: 10px;
-}
-.controls button, .controls .search-bar {
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    cursor: pointer;
-    font-size: 14px;
-}
-.search-bar {
-    display: flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    border-radius: 5px;
-    padding: 5px;
-    flex-grow: 1;
-}
-.search-bar input {
-    background: transparent;
-    border: none;
-    color: white;
-    padding: 5px;
-    outline: none;
-    flex-grow: 1;
-}
-.notification-bell {
-    margin-left: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px;
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 1000;
-}
-.notification-list {
-    position: absolute;
-    top: 50px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    color: black;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 2000;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
+            font-family: 'Roboto', sans-serif;
+            background-color: #181818;
+            color: #E0E0E0;
+            margin: 0;
+            overflow: hidden; /* Asegura que no haya barras de desplazamiento */
+        }
+        #map {
+            width: 100%;
+            height: 100vh; /* Ocupa toda la altura de la ventana */
+        }
+        #controlPanel {
+            width: 300px; /* Ajustar el ancho según sea necesario */
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 10px 0 0 10px; /* Ajustar las esquinas redondeadas */
+            color: white;
+            display: none;
+            justify-content: center;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            height: 400px; /* Ajustar la altura según sea necesario */
+            z-index: 1000; /* Asegura que esté sobre el mapa */
+            cursor: move; /* Cambia el cursor para indicar que es movible */
+        }
+        #chartContainer {
+            width: 100%;
+            height: 100%; /* Fill the panel */
+        }
+        #chart {
+            width: 100%;
+            height: 100%; /* Fill the container */
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            left: 60px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        .controls button, .controls .search-bar {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 5px;
+            padding: 5px;
+            flex-grow: 1;
+        }
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 5px;
+            outline: none;
+            flex-grow: 1;
+        }
+        .notification-bell {
+            margin-left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        .notification-list {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 2000;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .legend .scale {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend .scale div {
+            width: 20px;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
@@ -246,17 +256,17 @@
             div.innerHTML = `
                 <div class="title">Precipitación, mm/h</div>
                 <div class="scale">
-                    <div style="background: #003300; width: 20px; height: 20px;"></div>
-                    <div style="background: #006600; width: 20px; height: 20px;"></div>
-                    <div style="background: #009900; width: 20px; height: 20px;"></div>
-                    <div style="background: #00CC00; width: 20px; height: 20px;"></div>
-                    <div style="background: #00FF00; width: 20px; height: 20px;"></div>
-                    <div style="background: #FFFF00; width: 20px; height: 20px;"></div>
-                    <div style="background: #FFCC00; width: 20px; height: 20px;"></div>
-                    <div style="background: #FF9900; width: 20px; height: 20px;"></div>
-                    <div style="background: #FF6600; width: 20px; height: 20px;"></div>
-                    <div style="background: #FF3300; width: 20px; height: 20px;"></div>
-                    <div style="background: #FF0000; width: 20px; height: 20px;"></div>
+                    <div style="background: #003300;"></div>
+                    <div style="background: #006600;"></div>
+                    <div style="background: #009900;"></div>
+                    <div style="background: #00CC00;"></div>
+                    <div style="background: #00FF00;"></div>
+                    <div style="background: #FFFF00;"></div>
+                    <div style="background: #FFCC00;"></div>
+                    <div style="background: #FF9900;"></div>
+                    <div style="background: #FF6600;"></div>
+                    <div style="background: #FF3300;"></div>
+                    <div style="background: #FF0000;"></div>
                 </div>
                 <div class="scale">
                     <span>0</span>
@@ -288,68 +298,67 @@
         });
 
         // Función para mostrar gráficos de datos meteorológicos
-        // Función para mostrar gráficos de datos meteorológicos
-function mostrarGrafico(datos) {
-    const labels = datos.hourly.time.slice(0, 24); // Primeras 24 horas
-    const tempData = datos.hourly.temperature_2m.slice(0, 24);
-    const precipData = datos.hourly.precipitation.slice(0, 24);
+        function mostrarGrafico(datos) {
+            const labels = datos.hourly.time.slice(0, 24); // Primeras 24 horas
+            const tempData = datos.hourly.temperature_2m.slice(0, 24);
+            const precipData = datos.hourly.precipitation.slice(0, 24);
 
-    const ctx = document.getElementById('chart').getContext('2d');
-    if (chart) {
-        chart.destroy();
-    }
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Temperatura (°C)',
-                data: tempData,
-                borderColor: 'rgba(255, 99, 132, 1)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                yAxisID: 'y',
-            }, {
-                label: 'Precipitación (mm)',
-                data: precipData,
-                borderColor: 'rgba(54, 162, 235, 1)',
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                yAxisID: 'y1',
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    type: 'linear',
-                    position: 'left',
-                },
-                y1: {
-                    type: 'linear',
-                    position: 'right',
-                    grid: {
-                        drawOnChartArea: false,
-                    },
-                },
+            const ctx = document.getElementById('chart').getContext('2d');
+            if (chart) {
+                chart.destroy();
             }
-        }
-    });
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperatura (°C)',
+                        data: tempData,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        yAxisID: 'y',
+                    }, {
+                        label: 'Precipitación (mm)',
+                        data: precipData,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        yAxisID: 'y1',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
 
-    // Ajustar tamaño del panel y mostrarlo
-    document.getElementById('controlPanel').style.display = 'flex';
-}
+            // Mostrar el panel
+            document.getElementById('controlPanel').style.display = 'flex';
+        }
 
         // Función para verificar condiciones y mostrar notificaciones
-        function verificarCondiciones(datos, nombreEstacion) {
+        function verificarCondiciones(datos, estacion) {
             const precip = datos.hourly.precipitation[0];
             const windSpeed = datos.hourly.windspeed_10m[0];
 
             if (precip > 20) {
-                mostrarNotificacion('Alerta de Precipitación', 'Precipitación elevada detectada en ' + nombreEstacion + ': ' + precip + ' mm/h');
+                mostrarNotificacion('Alerta de Precipitación', 'Precipitación elevada detectada: ' + precip + ' mm/h en la estación ' + estacion);
             }
 
             if (windSpeed > 10) {
-                mostrarNotificacion('Alerta de Viento', 'Velocidad del viento elevada detectada en ' + nombreEstacion + ': ' + windSpeed + ' m/s');
+                mostrarNotificacion('Alerta de Viento', 'Velocidad del viento elevada detectada: ' + windSpeed + ' m/s en la estación ' + estacion);
             }
         }
 
@@ -358,30 +367,30 @@ function mostrarGrafico(datos) {
             const notificationElement = document.getElementById('notification');
             notificationElement.innerHTML = `<strong>${titulo}</strong><br>${mensaje}`;
             notificationElement.style.display = 'block';
-            notificaciones.push({titulo, mensaje});
-            actualizarListaNotificaciones();
             setTimeout(() => {
                 notificationElement.style.display = 'none';
             }, 5000);
+
+            // Almacenar notificación en la lista de notificaciones
+            notificaciones.push({ titulo, mensaje });
+            actualizarListaNotificaciones();
         }
 
         // Función para actualizar la lista de notificaciones
         function actualizarListaNotificaciones() {
             const notificationList = document.querySelector('.notification-list');
-            if (notificaciones.length === 0) {
-                notificationList.innerHTML = '<div>No se han registrado cambios en los datos desde el ingreso del usuario.</div>';
-            } else {
-                notificationList.innerHTML = notificaciones.map(notif => `<div><strong>${notif.titulo}</strong><br>${notif.mensaje}</div>`).join('');
-            }
+            notificationList.innerHTML = notificaciones.length
+                ? notificaciones.map(n => `<div><strong>${n.titulo}</strong><br>${n.mensaje}</div>`).join('')
+                : '<div>No hay notificaciones nuevas</div>';
         }
 
-        // Mostrar/ocultar lista de notificaciones al hacer clic en la campana
-        document.querySelector('.notification-bell').addEventListener('click', function() {
+        // Mostrar/ocultar la lista de notificaciones
+        document.querySelector('.notification-bell').addEventListener('click', function () {
             const notificationList = document.querySelector('.notification-list');
-            notificationList.style.display = notificationList.style.display === 'none' ? 'block' : 'none';
+            notificationList.style.display = notificationList.style.display === 'block' ? 'none' : 'block';
         });
 
-        // Función para alternar entre modo oscuro y claro
+        // Alternar entre modo oscuro y claro
         document.querySelector('.toggle-theme').addEventListener('click', function() {
             const isDark = document.body.classList.toggle('dark-mode');
             map.remove();
@@ -395,12 +404,6 @@ function mostrarGrafico(datos) {
             legend.addTo(map);
         });
 
-        // Función para mostrar/ocultar el panel de gráficos
-        document.querySelector('.toggle-panel').addEventListener('click', function() {
-            const controlPanel = document.getElementById('controlPanel');
-            controlPanel.style.display = controlPanel.style.display === 'none' ? 'flex' : 'none';
-        });
-
         var lightLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         });
@@ -408,6 +411,33 @@ function mostrarGrafico(datos) {
         var darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         });
+
+        // Configurar panel de control como movible
+        interact('#controlPanel').draggable({
+            inertia: true,
+            modifiers: [
+                interact.modifiers.restrictRect({
+                    restriction: 'parent',
+                    endOnly: true
+                })
+            ],
+            autoScroll: true,
+            onmove: dragMoveListener
+        });
+
+        function dragMoveListener(event) {
+            var target = event.target;
+            var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+            var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+            target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+        }
+
+        window.dragMoveListener = dragMoveListener;
     </script>
 </body>
 </html>
+
